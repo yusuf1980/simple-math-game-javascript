@@ -1,0 +1,360 @@
+<html>
+<head>
+<title>Substraction</title>
+<style>
+#container {
+}
+#questions {
+	border: 1px solid #42e74a;
+	border-radius: 10px;
+	margin: 20px 0;
+	padding: 10px 0;
+	font-size: 20px;
+}
+#questions, #answer {
+	width: 200px;
+}
+#questions > p, #answer > p {
+	text-align: center;
+}
+#timer {
+	margin-left: 20px;
+	font-size: 22px;
+}
+.green {
+	color: green;
+}
+.red {
+	color: red;
+}
+#jawab {
+	margin-top: 25px;
+}
+#jawab > input {
+}
+#jawab > input[type="number"] {
+	text-align: center;
+	width: 200;
+	height: 70;
+	font-size: 25px;
+}
+</style>
+</head>
+<body onload="start()">
+<div id="container" width="300">
+	<div id="mybutton">
+		<select name="" id="level">
+			<option value="1">Level 1</option>
+			<option value="2">Level 2</option>
+			<option value="3">Level 3</option>
+			<option value="4">Level 4</option>
+		</select>
+		<button id="start" onclick="start()">Mulai</button>
+	</div>
+	<div id="questions">
+		<p style="height: 20px">Klik Mulai</p>
+	</div>
+	<div id="jawab">
+		<input id="inp" type="number" onkeydown="GameArea.input(this)"> <span id="timer">00:00</span>
+	</div>
+	<div id="answer">
+		<p>jawaban</p>
+	</div>
+</div>
+<script>
+"user strict"
+var d = document, a, b, lev
+var	ans = d.getElementById("answer").getElementsByTagName('p')[0],
+	elTimer = d.getElementById('timer'),
+	inpt =  d.getElementById("inp");
+
+var now = new Date().getTime()
+
+createCon()
+
+addEventListener('resize', createCon)
+
+function createCon() {
+	var width = window.innerWidth
+	var container = d.getElementById('container')
+	var conWidth = 300
+	container.style.width = conWidth
+	container.style.marginLeft = (width - conWidth) / 2
+}
+
+function start(){
+	GameArea.init({
+		container: "container", 
+		level: 1
+	})
+}
+
+var GameArea = {
+	proLev: {},
+	settings: {},
+	init: function (con) {
+		this.level = (con.level ? con.level : 1)
+		this.settings = con
+		this.inp = inpt
+		this.reset()
+	},
+	reset: function () {
+		// if (Object.keys(this.proLev).length !== 0) {
+			removeElQuestions(this.proLev.questions)
+			this.proLev = {}
+		// }
+		
+		this.inp.value = null
+		this.inp.setAttribute('disabled', '')
+		elTimer.innerText = '00:00'
+		this.elStart = document.getElementById('start')
+		this.elStart.setAttribute('disabled', '')
+
+		if(this.interval) {
+			this.stop()
+		}
+		var pro = new proses(this.level, 500)
+
+		pro.then((res) => {
+			this.proLev = res
+			this.rep = 1
+			ans.textContent = "Enter setelah jawab"
+			this.elStart.removeAttribute('disabled')
+			this.inp.removeAttribute('disabled')
+			this.inp.focus()
+			this.gTimer = {m:0,s:0,ms:0,el:elTimer}
+			this.interval = setInterval(setTime, 10)
+		})
+	},
+	input: (e) => {
+		if(event.keyCode == 13 || event.keyCode == 32) {
+			if(GameArea.rep==1 && GameArea.proLev.numbers){
+				answer(e.value, GameArea.proLev)
+			}
+			else if(GameArea.rep==2){
+				GameArea.reset()
+			}
+		}
+	},
+	stop: function(){
+		clearInterval(this.interval)
+	}
+
+}
+
+function setTime(){
+	if(GameArea.gTimer){
+		g = GameArea.gTimer
+
+		if((g.ms += 10) == 1000){
+			g.ms = 0
+			g.s++
+		}
+		if(g.s == 60) {
+			g.s = 0
+			g.m++
+		}
+		var m = checkTime(g.m)
+		var s = checkTime(g.s)
+
+		g.el.innerText = `${m}:${s}`
+	}
+	
+}
+function checkTime(i){
+	if(i<10){i = "0"+i}
+	// return i.toString().padStart(2, '0');
+	return i
+}
+function everyInterval(n, i) {
+	if((i / n) % 1 == 0) return true
+	return false
+}
+
+function inc(bef, now){
+	bef.push(now)
+	if(typeof now === 'number') {
+		if(bef.length) {
+			if(bef[1] === '-') {
+				var res = bef[0] - now
+				bef = []
+				bef[0] = res
+			}
+			else if(bef[1] === '+') {
+				var res = bef[0] + now
+				bef = []
+				bef[0] = res
+			}
+			else if(bef[1] === 'x') {
+				var res = bef[0] * now
+				bef = []
+				bef[0] = res
+			}
+			else if(bef[1] === ':') {
+				var res = bef[0] / now
+				bef = []
+				bef[0] = res
+				// bef[0] = Math.floor(res)
+			}
+		}
+
+	}
+	return bef
+}
+answer = (value, proLev) => {
+	var result, ab, bef = []
+	
+	for(i in proLev.numbers) {
+		ab = proLev.numbers[i]
+		bef = inc(bef, ab)
+	}
+	result = bef[0]
+	
+	if(result || result ===0) {
+		if(value == result) {
+			ans.innerHTML = '<span class="green">Betul.</span> Jawaban '+result
+		}
+		else {
+			ans.innerHTML = '<span class="red">Salah! </span> Jawaban '+result
+		}
+		var span = document.createElement("span") 
+		span.innerHTML = "<br><br> Enter untuk mulai lagi."
+		ans.appendChild(span)
+		GameArea.rep++
+		GameArea.stop()	
+	}
+}
+function proses (lev, delay) {
+	let prom = new Promise((resolve, reject) => {
+		let d;
+		if(lev == 1) {
+			d = new level1()
+			resolve(d)
+		}
+		else if(lev == 2) {
+			d = new level2()
+			resolve(d)
+		}
+		reject('error')
+	})
+
+	prom.then((res) => {
+		this.max = res.max
+		this.min = res.min
+		this.questions = []	
+		for(i=0;i<res.tech.length;i++){
+			this.questions.push(new elementQuestion(i+1, res.tech[i]))
+		}
+		var pQuestions = document.querySelector("#questions p")
+		var p = document.createElement('span')
+		
+		this.numbers = []
+		var interval = 50
+		this.inter = setInterval(()=>{
+			for(i=0;i<this.questions.length;i++){
+				if(this.questions[i].type === 'rand1') {
+					this.numbers[i] = this.rand1()
+					this.questions[i].quest.textContent = this.numbers[i]
+				}
+				else if(this.questions[i].type === 'rand2') {
+					this.numbers[i] = this.rand2()
+					this.questions[i].quest.textContent = this.numbers[i]
+				}
+				else if(this.questions[i].type === 'rand3') {
+					this.numbers[i] = this.rand3()
+					this.questions[i].quest.textContent = this.numbers[i]
+				}
+				else {
+					this.questions[i].quest.textContent = ` ${this.questions[i].type} `
+					this.numbers[i] = this.questions[i].type
+				}
+				
+				p.innerText = " = ?"
+				pQuestions.appendChild(p)
+			}
+
+		}, interval)
+		
+	})
+	.catch(err => console.log(err))
+
+	return new Promise((resolve, reject) => {
+		setTimeout(()=>{
+			clearInterval(this.inter)
+			resolve(this, prom)
+			reject('error')
+		}, delay)
+	})
+}
+proses.prototype.rand1 = function() {
+	return Math.floor(Math.random() * (this.max-this.min + 1)+this.min )
+}
+proses.prototype.rand2 = function() {
+	var randBefore = this.numbers[i-2]
+	return Math.floor(Math.random() * (randBefore-this.min)+this.min )
+}
+proses.prototype.rand3 = function() {
+	var numBefore = this.numbers[i-2]
+	var num
+	if(canDivison(numBefore)){
+		num = divisionRandom(numBefore)
+	}else {
+		num = 1
+	}
+	return num
+}
+function canDivison(bef){
+	return (bef % 2 == 0 || bef % 3 == 0)
+}
+function divisionRandom(numBefore){
+	var def = getAllDivisionNum(numBefore)
+
+	return def[Math.floor(Math.random()*def.length)]
+}
+function getAllDivisionNum(numBefore){
+	var def = []
+	var i = 2
+	if(numBefore == 2) { i = 1; numBefore +=2}
+
+	for(i; i<numBefore; i++){
+		if((numBefore/i) % 1 == 0  ){
+			def.push(i)
+		}
+	}
+	return def
+}
+
+function elementQuestion(numTo, type){
+	this.number = 0
+	this.type = type
+	var container = document.getElementById(GameArea.settings.container)
+	var pQuestions = container.querySelector("#questions p")
+	this.quest = document.createElement('span')
+	this.questID = 'quest'+numTo
+	this.quest.setAttribute('id', this.questID)
+	pQuestions.appendChild(this.quest)
+}
+function removeElQuestions(q){
+	var pQuestions = document.querySelector("#questions p")
+	pQuestions.innerHTML = ''
+}
+
+function level1() {
+	this.max = 9
+	this.min = 1
+
+	this.tech = [
+		'rand1', '-','rand2',
+	]
+}
+function level2() {
+	this.max = 10
+	this.min = 1
+	this.tech = [
+		'rand1', 'rand1'
+	]
+}
+
+</script>
+</body>
+</html>
